@@ -108,8 +108,6 @@ parser.add_argument('--prodigy_use_bias_correction', default=False, type=bool)
 parser.add_argument('--prodigy_safeguard_warmup', default=False, type=bool) # Remove lr from the denominator of D estimate to avoid issues during warm-up stage. Off by default.
 parser.add_argument('--prodigy_fsdp_in_use', default=False, type=bool)
 parser.add_argument('--sophia_rho', default=0.04, type=float)
-parser.add_argument('--clipping_type', default='no', choices=['no', 'local', 'elementwise']) # for methods with clipping
-parser.add_argument('--clipping_eta', default=1.0, type=float)
 parser.add_argument('--mars_type', default='mars-adamw', choices=['mars-adamw', 'mars-lion', 'mars-shampoo'],)
 parser.add_argument('--mars_vr_gamma', default=0.025, type=float)
 parser.add_argument('--mars_is_approx', default=True, type=float)
