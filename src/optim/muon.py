@@ -1,5 +1,7 @@
 """
 Here is an original implementation of Muon and Distributed Muon. 
+_Note_ that 'class Muon'  is an old version which does not include weight decay for matrix params
+the newer version with weight decay is in the 'class DistributedMuon'.
 Source: https://github.com/KellerJordan/modded-nanogpt
 Source: https://github.com/toothacher17/Megatron-LM/tree/moonshot/distributedmuon-impl
 """
@@ -11,7 +13,7 @@ from typing import Dict, Tuple
 import torch
 import torch.distributed as dist
 
-from .schedule import cos_inf_schedule, cosine_wsd_decay_schedule, wsd_schedule
+from .schedule import cos_inf_schedule, wsd_schedule
 
 
 # copy from https://github.com/KellerJordan/Muon/tree/master
@@ -78,7 +80,6 @@ def normalize_range(range: Tuple[int, int], start):
 
 
 class MuonDistMeta:
-
     # which buffer and bucket param belongs to
     buffer_idx: int = 0
     bucket_idx: int = 0
@@ -161,7 +162,6 @@ class DistributedMuon(torch.optim.Optimizer):
         adamw_betas=(0.95, 0.95),
         adamw_eps=1e-8,
     ):
-
         defaults = dict(
             lr=lr,
             weight_decay=weight_decay,
@@ -238,7 +238,6 @@ class DistributedMuon(torch.optim.Optimizer):
         self.distributed_mode = True
 
     def step(self):
-
         dtype = torch.bfloat16
         device = torch.cuda.current_device()
 
@@ -246,12 +245,10 @@ class DistributedMuon(torch.optim.Optimizer):
 
         # update muon momentum first
         for group in self.param_groups:
-
             momentum = group["momentum"]
             params = group["params"]
 
             for p in params:
-
                 if not self.state[p].get("use_muon", False):
                     continue
 
@@ -273,7 +270,6 @@ class DistributedMuon(torch.optim.Optimizer):
 
         # rewrite ns_inputs if distributed
         if self.distributed_mode:
-
             # initialize buffers
             ns_input_local_buffers = [
                 [
@@ -339,7 +335,6 @@ class DistributedMuon(torch.optim.Optimizer):
 
         # update muon momentum first
         for group in self.param_groups:
-
             # if not group.get('use_muon', False):
             #     continue
 
@@ -350,7 +345,6 @@ class DistributedMuon(torch.optim.Optimizer):
             params = group["params"]
 
             for p in params:
-
                 if not self.state[p].get("use_muon", False):
                     continue
 
@@ -396,7 +390,6 @@ class DistributedMuon(torch.optim.Optimizer):
 
         # use adam for other params
         for group in self.param_groups:
-
             # if group.get('use_muon', False):
             #     continue
 
@@ -414,7 +407,6 @@ class DistributedMuon(torch.optim.Optimizer):
             eps = group["adamw_eps"]
 
             for p in params:
-
                 if self.state[p].get("use_muon", False):
                     continue
 
@@ -691,18 +683,6 @@ class CombinedScheduler:
                     fract_decay=cfg.wsd_fract_decay,
                     init_div_factor=1e2,
                     final_lr_factor=cfg.wsd_final_lr_scale,
-                    decay_type=cfg.decay_type,
-                ),
-            ),
-            "cos_wsd": lambda opt, lr: torch.optim.lr_scheduler.LambdaLR(
-                opt,
-                cosine_wsd_decay_schedule(
-                    n_iterations=cfg.iterations,
-                    n_warmup=cfg.warmup_steps,
-                    anneal_end_factor=0.15,
-                    fract_decay=cfg.wsd_fract_decay,
-                    init_div_factor=1e2,
-                    final_lr_factor=0.1,
                     decay_type=cfg.decay_type,
                 ),
             ),

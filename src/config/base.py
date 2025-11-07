@@ -77,12 +77,6 @@ def parse_args(base_parser, args, namespace):
         default="linear",
         choices=["linear", "cosine", "exp", "miror_cosine", "square", "sqrt"],
     )
-    parser.add_argument(
-        "--dd_second_decay_type",
-        default="linear",
-        choices=["linear", "cosine", "exp", "miror_cosine", "square", "sqrt"],
-    )
-    parser.add_argument("--dd_first_lr_factor", default=1e-2, type=float)
 
     # Optimization
     parser.add_argument(
@@ -105,7 +99,10 @@ def parse_args(base_parser, args, namespace):
             "mars",
             "adafactor",
             "lamb",
+            "scion",
+            "scion-light",
             "d-muon",
+            "muon-pytorch",  # works only with torch>=2.9
         ],
     )
     parser.add_argument("--batch_size", default=50, type=int)
@@ -134,7 +131,6 @@ def parse_args(base_parser, args, namespace):
     parser.add_argument("--adema_alpha_warmup", default=None, type=int)
     parser.add_argument("--schedulefree_r", default=0.0, type=float)
     parser.add_argument("--weight_lr_power", default=2.0, type=float)
-    parser.add_argument("--model_sharding", default=None, type=bool)
     parser.add_argument("--dampening", default=0.0, type=float)
     parser.add_argument("--prodigy_beta3", default=None, type=float)
     parser.add_argument("--prodigy_decouple", default=True, type=bool)
@@ -159,11 +155,57 @@ def parse_args(base_parser, args, namespace):
     parser.add_argument("--mars_beta2", default=0.99, type=float)
     parser.add_argument("--adafactor_decay_rate", default=-0.8, type=float)
     parser.add_argument("--lamb_use_bias_correction", default=False, type=bool)
-    parser.add_argument("--sgd_sign_update", default=False, action="store_true")
-    parser.add_argument("--normalized", default=False, action="store_true")
-    parser.add_argument("--sgd_lr_scale", default=1.0, type=float)
     parser.add_argument("--adopt_decouple", default=True, type=bool)
     parser.add_argument("--adopt_eps", default=1e-6, type=float)
+    parser.add_argument("--scion_lmh_scale", default=10.0, type=float)
+    parser.add_argument("--scion_emb_scale", default=1.0, type=float)
+    parser.add_argument("--scion_tr_scale", default=3.0, type=float)
+    parser.add_argument(
+        "--weight_average", action="store_true"
+    )  # uniform weight averaging (or SWA)
+    parser.add_argument(
+        "--wa_interval",
+        default=5,
+        type=int,
+        help="How often to take the average (every k steps). Must divide wa-horizon.",
+    )
+    parser.add_argument(
+        "--wa_horizon",
+        default=500,
+        type=int,
+        help="How frequently we save uniform model averages. Should divide "
+        + "latest-ckpt-interval, otherwise some points may not be saved "
+        + "correctly.",
+    )
+    parser.add_argument(
+        "--wa_dtype",
+        default="float32",
+        type=str,
+        choices=["float32", "float64"],
+    )
+    parser.add_argument("--wa_use_temp_dir", action="store_true")
+    parser.add_argument("--wa_sweep_horizon", action="store_true")
+    parser.add_argument("--max_num_wa_sweeps", default=5, type=int)
+    parser.add_argument(
+        "--exponential_weight_average", action="store_true"
+    )  # EMA of weights
+    parser.add_argument(
+        "--ewa_interval",
+        default=10,
+        type=int,
+        help="How often to take the EWA average (every k steps).",
+    )
+    parser.add_argument(
+        "--ewa_decay",
+        default=0.95,
+        type=float,
+        help="EWA decay parameter (between 0.9 and 1).",
+    )
+    parser.add_argument(
+        "--ewa_after_warmup",
+        action="store_true",
+        help="Start EWA after warmup steps.",
+    )
 
     # Dataset params
     parser.add_argument("--datasets_dir", type=str, default="./src/data/datasets/")
@@ -184,6 +226,17 @@ def parse_args(base_parser, args, namespace):
             "fineweb",
             "finewebedu",
             "c4",
+            "arc_easy",  # benchmark tasks below...
+            "arc_challenge",
+            "hellaswag",
+            "logiqa",
+            "piqa",
+            "sciq",
+            "humaneval",
+            "gsm8k",
+            "kodcode",
+            "mathqa",
+            "medqa",
         ],
     )
     parser.add_argument(
@@ -201,7 +254,8 @@ def parse_args(base_parser, args, namespace):
         choices=[
             "base",
             "llama",
-            "test",
+            "mup_gpt",
+            "mup_llama",
         ],
     )
     parser.add_argument("--parallel_block", action="store_true")
@@ -222,6 +276,7 @@ def parse_args(base_parser, args, namespace):
         default=256,
         type=int,
     )
+    parser.add_argument("--n_kv_head", default=None, type=int)  # for Adam-mini
     parser.add_argument("--rmsnorm_eps", default=1e-5, type=float)
     parser.add_argument(
         "--dtype",
@@ -231,7 +286,12 @@ def parse_args(base_parser, args, namespace):
     )
     parser.add_argument("--bias", default=False, type=bool)
     parser.add_argument("--compile", action="store_true")
-    parser.add_argument("--mlp_dim_exp_factor", default=1.0, type=float)
+    parser.add_argument(
+        "--untied_embeds", action="store_true"
+    )  # disables weight tying between lm_head.weight and wte.weight
+    parser.add_argument(
+        "--mlp_dim_exp_factor", default=1.0, type=float
+    )  # moe arguments
     parser.add_argument("--moe", action="store_true")
     parser.add_argument(
         "--moe_routing",
@@ -263,5 +323,10 @@ def parse_args(base_parser, args, namespace):
         choices=["softmax_topk", "topk_softmax"],
     )
     parser.add_argument("--plot_router_logits", action="store_true")
+    parser.add_argument(
+        "--scale_emb", default=10, type=int
+    )  # mup arguments --- the base model width that mup has been configured on
+    parser.add_argument("--scale_base_model", default=256, type=int)
+    parser.add_argument("--scale_depth", default=1.4, type=float)
 
     return parser.parse_args(args, namespace)

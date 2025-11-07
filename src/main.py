@@ -24,9 +24,9 @@ from optim.lion import Lion
 from optim.mars import MARS
 from optim.muon import CombinedScheduler, DistributedMuon, Muon
 from optim.prodigy import Prodigy
-from optim.schedule import (cos_inf_schedule, cosine_wsd_decay_schedule,
-                            dd_schedule, wsd_schedule)
+from optim.schedule import cos_inf_schedule, wsd_schedule
 from optim.schedulefree import AdamWScheduleFree, SGDScheduleFree
+from optim.scion import Scion, ScionLight, scion_partitions
 from optim.sign import Signum
 from optim.soap import SOAP
 from optim.sophia import SophiaG
@@ -93,7 +93,9 @@ def main(args, parser):
 
     model = distributed_backend.transform_model(model)
 
-    group_specs = distributed_backend.get_raw_model(model).get_parameter_group_specs()
+    group_specs = distributed_backend.get_raw_model(model).get_parameter_group_specs(
+        config=args
+    )
     param_name_mapping = {p_name: p for p_name, p in model.named_parameters()}
     optimized_params_cnt = 0
     for g in group_specs:
@@ -106,44 +108,54 @@ def main(args, parser):
         g["params"] = params
         optimized_params_cnt += sum([p.numel() for p in g["params"]])
     params_cnt = distributed_backend.get_raw_model(model).get_num_params()
+    nonemb_param_cnt = (
+        params_cnt
+        - distributed_backend.get_raw_model(model).lm_head.weight.numel()
+        - distributed_backend.get_raw_model(model).transformer.wte.weight.numel()
+    )
     print("number of parameters: %.2fM" % (params_cnt / 1e6,))
     print("number of optimized parameters: %.2fM" % (optimized_params_cnt / 1e6,))
+    print("number of non-embedding parameters: %.2fM" % (nonemb_param_cnt / 1e6,))
     if args.wandb and distributed_backend.is_master_process():
         wandb.log(
-            {"parameters": params_cnt, "optimized_parameters": optimized_params_cnt}
+            {
+                "parameters": params_cnt,
+                "optimized_parameters": optimized_params_cnt,
+                "non_embedding_parameters": nonemb_param_cnt,
+            }
         )
 
     args.world_size = distributed_backend.get_world_size()
 
     if args.opt == "adamw":
-            device_type = "cuda" if "cuda" in args.device else "cpu"
-            use_fused = (device_type == "cuda") and (
-                "fused" in inspect.signature(torch.optim.AdamW).parameters
-            )
-            print(f"using fused AdamW: {use_fused}")
-            extra_args = dict(fused=True) if use_fused else dict()
-            opt = torch.optim.AdamW(
-                group_specs,
-                lr=args.lr,
-                betas=(args.beta1, args.beta2),
-                weight_decay=args.weight_decay,
-                **extra_args,
-            )
+        device_type = "cuda" if "cuda" in args.device else "cpu"
+        use_fused = (device_type == "cuda") and (
+            "fused" in inspect.signature(torch.optim.AdamW).parameters
+        )
+        print(f"using fused AdamW: {use_fused}")
+        extra_args = dict(fused=True) if use_fused else dict()
+        opt = torch.optim.AdamW(
+            group_specs,
+            lr=args.lr,
+            betas=(args.beta1, args.beta2),
+            weight_decay=args.weight_decay,
+            **extra_args,
+        )
     elif args.opt == "soap":
-            opt = SOAP(
-                group_specs,
-                lr=args.lr,
-                betas=(args.beta1, args.beta2),
-                shampoo_beta=args.shampoo_beta,
-                weight_decay=args.weight_decay,
-                precondition_frequency=args.precondition_frequency,
-                max_precond_dim=args.max_precond_dim,
-                merge_dims=args.merge_dims,
-                precondition_1d=args.precondition_1d,
-                normalize_grads=args.normalize_grads,
-                data_format=args.soap_data_format,
-                correct_bias=args.correct_bias,
-            )
+        opt = SOAP(
+            group_specs,
+            lr=args.lr,
+            betas=(args.beta1, args.beta2),
+            shampoo_beta=args.shampoo_beta,
+            weight_decay=args.weight_decay,
+            precondition_frequency=args.precondition_frequency,
+            max_precond_dim=args.max_precond_dim,
+            merge_dims=args.merge_dims,
+            precondition_1d=args.precondition_1d,
+            normalize_grads=args.normalize_grads,
+            data_format=args.soap_data_format,
+            correct_bias=args.correct_bias,
+        )
     elif args.opt == "muon":
         param_list = (
             list(model.parameters())
@@ -163,33 +175,33 @@ def main(args, parser):
             adamw_wd=args.weight_decay,
         )
     elif args.opt == "d-muon":
-            opt = DistributedMuon(
-                group_specs,
-                lr=args.lr,
-                momentum=args.momentum,
-                nesterov=args.nesterov,
-                ns_steps=args.muon_ns_steps,
-                adamw_betas=(args.beta1, args.beta2),
-                adamw_eps=1e-8,
-                weight_decay=args.weight_decay,
-            )
+        opt = DistributedMuon(
+            group_specs,
+            lr=args.lr,
+            momentum=args.momentum,
+            nesterov=args.nesterov,
+            ns_steps=args.muon_ns_steps,
+            adamw_betas=(args.beta1, args.beta2),
+            adamw_eps=1e-8,
+            weight_decay=args.weight_decay,
+        )
     elif args.opt == "ademamix":
-            opt = AdEMAMix(
-                group_specs,
-                lr=args.lr,
-                betas=(args.beta1, args.beta2, args.adema_beta3),
-                alpha=args.adema_alpha,
-                beta3_warmup=args.adema_beta3_warmup,
-                alpha_warmup=args.adema_alpha_warmup,
-                weight_decay=args.weight_decay,
-            )
+        opt = AdEMAMix(
+            group_specs,
+            lr=args.lr,
+            betas=(args.beta1, args.beta2, args.adema_beta3),
+            alpha=args.adema_alpha,
+            beta3_warmup=args.adema_beta3_warmup,
+            alpha_warmup=args.adema_alpha_warmup,
+            weight_decay=args.weight_decay,
+        )
     elif args.opt == "lion":
-            opt = Lion(
-                group_specs,
-                lr=args.lr,
-                betas=(args.beta1, args.beta2),
-                weight_decay=args.weight_decay,
-            )
+        opt = Lion(
+            group_specs,
+            lr=args.lr,
+            betas=(args.beta1, args.beta2),
+            weight_decay=args.weight_decay,
+        )
     elif args.opt == "sf-adamw":
         opt = AdamWScheduleFree(
             group_specs,
@@ -211,25 +223,25 @@ def main(args, parser):
             weight_lr_power=args.weight_lr_power,
         )  # without foreach argument
     elif args.opt == "signsgd":
-            opt = Signum(
-                group_specs,
-                lr=args.lr,
-                momentum=0.0,  # always use zero momentum because its signSGD
-                dampening=args.dampening,
-                weight_decay=args.weight_decay,
-                nesterov=args.nesterov,
-                sign_update=True,
-            )
+        opt = Signum(
+            group_specs,
+            lr=args.lr,
+            momentum=0.0,  # always use zero momentum because its signSGD
+            dampening=args.dampening,
+            weight_decay=args.weight_decay,
+            nesterov=args.nesterov,
+            sign_update=True,
+        )
     elif args.opt == "signum":
-            opt = Signum(
-                group_specs,
-                lr=args.lr,
-                momentum=args.momentum,
-                weight_decay=args.weight_decay,
-                dampening=args.dampening,
-                nesterov=args.nesterov,
-                sign_update=True,
-            )
+        opt = Signum(
+            group_specs,
+            lr=args.lr,
+            momentum=args.momentum,
+            weight_decay=args.weight_decay,
+            dampening=args.dampening,
+            nesterov=args.nesterov,
+            sign_update=True,
+        )
     elif args.opt == "prodigy":
         opt = Prodigy(
             group_specs,
@@ -243,22 +255,22 @@ def main(args, parser):
             fsdp_in_use=args.prodigy_fsdp_in_use,
         )
     elif args.opt == "sophiag":
-            opt = SophiaG(
-                group_specs,
-                lr=args.lr,
-                betas=(args.beta1, args.beta2),
-                weight_decay=args.weight_decay,
-                rho=args.sophia_rho,
-            )
+        opt = SophiaG(
+            group_specs,
+            lr=args.lr,
+            betas=(args.beta1, args.beta2),
+            weight_decay=args.weight_decay,
+            rho=args.sophia_rho,
+        )
     elif args.opt == "adopt":
-            opt = ADOPT(
-                group_specs,
-                lr=args.lr,
-                betas=(args.beta1, args.beta2),
-                eps=args.adopt_eps,  # 1e-6
-                weight_decay=args.weight_decay,
-                decouple=args.adopt_decouple,
-            )
+        opt = ADOPT(
+            group_specs,
+            lr=args.lr,
+            betas=(args.beta1, args.beta2),
+            eps=args.adopt_eps,  # 1e-6
+            weight_decay=args.weight_decay,
+            decouple=args.adopt_decouple,
+        )
     elif args.opt == "mars":
         opt = MARS(
             group_specs,
@@ -275,14 +287,14 @@ def main(args, parser):
             weight_decay_1d=0.1,  # AdamW's weight decay
         )
     elif args.opt == "adafactor":
-            opt = Adafactor(
-                group_specs,
-                lr=args.lr,
-                decay_rate=args.adafactor_decay_rate,
-                beta1=args.beta1,
-                clip_threshold=1.0,
-                weight_decay=args.weight_decay,
-            )
+        opt = Adafactor(
+            group_specs,
+            lr=args.lr,
+            decay_rate=args.adafactor_decay_rate,
+            beta1=args.beta1,
+            clip_threshold=1.0,
+            weight_decay=args.weight_decay,
+        )
     elif args.opt == "lamb":
         opt = Lamb(
             group_specs,
@@ -291,6 +303,43 @@ def main(args, parser):
             weight_decay=args.weight_decay,
             adam=False,
             bias_correction=args.lamb_use_bias_correction,
+        )
+    elif args.opt == "scion":
+        scion_param_groups = scion_partitions(group_specs, model, args)
+        scion_params_cnt = sum(
+            p.numel() for group in scion_param_groups for p in group["params"]
+        )
+        print(f"Optimized parameters: {scion_params_cnt}")
+        opt = Scion(
+            scion_param_groups,
+            lr=args.lr,
+            momentum=args.momentum,
+        )
+    elif args.opt == "scion-light":
+        scion_param_groups = scion_partitions(group_specs, model, args)
+        scion_params_cnt = sum(
+            p.numel() for group in scion_param_groups for p in group["params"]
+        )
+        print(f"Optimized parameters: {scion_params_cnt}")
+        opt = ScionLight(
+            scion_param_groups,
+            lr=args.lr,
+            momentum=args.momentum,
+        )
+    elif args.opt == "muon-pytorch":
+        opt = torch.optim.Muon(
+            group_specs,
+            lr=args.lr,
+            momentum=args.momentum,
+            nesterov=args.nesterov,
+            ns_steps=args.muon_ns_steps,
+            ns_coefficients=(
+                3.4445,
+                -4.775,
+                2.0315,
+            ),  # someone might try to change it later
+            eps=1e-7,  # muon pytorch uses smaller eps
+            adjust_lr_fn=None,  # to make the orthogonalized update have a consistent RMS across rectangular matrices
         )
     else:
         opt = torch.optim.SGD(
@@ -440,21 +489,40 @@ def get_exp_name(
         "wandb_run_prefix",
         "seed",
         "device",
+        "adema_beta3_warmup",
+        "adema_alpha_warmup",
         "plot_router_logits",
+        "weight_average",
+        # "wa_interval",
+        # "wa_horizon",
+        "wa_dtype",
+        "wa_use_temp_dir",
+        "wa_sweep_horizon",
+        # "max_num_wa_sweeps",
+        "exponential_weight_average",
+        # "ewa_interval",
+        # "ewa_decay",
+        # "ewa_after_warmup",
+        "moe",
     ],
 ):
     # Get the default values
     defaults = vars(parser.parse_args([]))
 
-    rank = distributed_backend.rank
+    # rank = distributed_backend.rank # decided to remove rank from the exp name
 
     # Generate the prefix with key arguments
     prefix_parts = []
     for key in key_args:
         if hasattr(args, key):
             value = getattr(args, key)
-            if key == "model" and hasattr(args, "moe") and args.moe:
-                value = f"moe_{value}"
+            if key == "model":
+                if getattr(args, "moe", False):
+                    value = f"moe_{value}"
+                if getattr(args, "weight_average", False):
+                    value = f"{value}_WA"
+                if getattr(args, "exponential_weight_average", False):
+                    value = f"{value}_EWA"
             prefix_parts.append(f"{key}-{value}")
 
     prefix = "_".join(prefix_parts)

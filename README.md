@@ -3,6 +3,7 @@
 [![BibTeX](https://img.shields.io/badge/BibTeX-Citation-green)](https://arxiv.org/bibtex/2509.01440)
 
 The code is largely based on our framework [llm-baselines](https://github.com/epfml/llm-baselines) to do research on training LLMs as an extension of [nanoGPT](https://github.com/karpathy/nanogpt).
+See the updates regarding our codebase and repo [here]().
 
 This code comes jointly with reference:
 
@@ -12,6 +13,10 @@ Date: September 2025
 
 **Abstract:**
 > The recent development of Large Language Models (LLMs) has been accompanied by an effervescence of novel ideas and methods to better optimize the loss of deep learning models. Claims from those methods are myriad: from faster convergence to removing reliance on certain hyperparameters. However, the diverse experimental protocols used to validate these claims make direct comparisons between methods challenging. This study presents a comprehensive evaluation of recent optimization techniques across standardized LLM pretraining scenarios, systematically varying model size, batch size, and training duration. Through careful tuning of each method, we provide guidance to practitioners on which optimizer is best suited for each scenario. For researchers, our work highlights promising directions for future optimization research. Finally, by releasing our code and making all experiments fully reproducible, we hope our efforts can help the development and rigorous benchmarking of future methods.
+
+## News 🔔
+
+* **11/2025:** Added muP (for both GPT and Llama configurations), uniform and exponential weight averaging, special initialization of the MoE router. More informative logging during training, including RMS and angular updates of different layers. Added an option to train models with untied embeds. Added benchmarks for evaluating downstream performance, e.g., hellaswag, arc_challenge, gsm8k...
 
 ## Quickstart 
 
@@ -78,7 +83,7 @@ parser.add_argument('--beta2', default=0.95, type=float) # adam parameter
 parser.add_argument('--scheduler', default='cos', choices=['linear', 'cos', 'wsd', 'cos_inf', 'none'])
 parser.add_argument('--final_div_factor', default=1, type=float) # cosine and linear schedulers
 parser.add_argument('--cos_inf_steps', default=0, type=int) # cos_inf scheduler
-parser.add_argument('--opt', default='adamw', choices=['adamw', 'sgd', 'muon', 'soap', 'ademamix', 'lion', 'sf-adamw', 'sf-sgd', 'signsgd', 'signum', 'prodigy', 'sophiag', 'adopt', 'mars', 'adafactor', 'lamb', 'd-muon'])
+parser.add_argument('--opt', default='adamw', choices=['adamw', 'sgd', 'muon', 'soap', 'ademamix', 'lion', 'sf-adamw', 'sf-sgd', 'signsgd', 'signum', 'prodigy', 'sophiag', 'adopt', 'mars', 'adafactor', 'lamb', 'scion', 'scion-light', 'd-muon', 'muon-pytorch'])
 parser.add_argument('--eval_freq', default=200, type=int) # in iterations
 parser.add_argument('--results_base_folder', default="./exps", type=str) # where the checkpoints will be saved
 parser.add_argument('--grad_clip', default=0.0, type=float) # default value is 1.0 in nanoGPT
@@ -108,8 +113,6 @@ parser.add_argument('--prodigy_use_bias_correction', default=False, type=bool)
 parser.add_argument('--prodigy_safeguard_warmup', default=False, type=bool) # Remove lr from the denominator of D estimate to avoid issues during warm-up stage. Off by default.
 parser.add_argument('--prodigy_fsdp_in_use', default=False, type=bool)
 parser.add_argument('--sophia_rho', default=0.04, type=float)
-parser.add_argument('--clipping_type', default='no', choices=['no', 'local', 'elementwise']) # for methods with clipping
-parser.add_argument('--clipping_eta', default=1.0, type=float)
 parser.add_argument('--mars_type', default='mars-adamw', choices=['mars-adamw', 'mars-lion', 'mars-shampoo'],)
 parser.add_argument('--mars_vr_gamma', default=0.025, type=float)
 parser.add_argument('--mars_is_approx', default=True, type=float)
@@ -120,13 +123,28 @@ parser.add_argument('--adafactor_decay_rate', default=-0.8, type=float)
 parser.add_argument('--lamb_use_bias_correction', default=False, type=bool)
 parser.add_argument('--adopt_decouple', default=True, type=bool)
 parser.add_argument('--adopt_eps', default=1e-6, type=float)
+parser.add_argument('--scion_lmh_scale', default=10.0, type=float)
+parser.add_argument('--scion_emb_scale', default=1.0, type=float)
+parser.add_argument('--scion_tr_scale', default=3.0, type=float)
+parser.add_argument('--weight_average', action='store_true') # uniform weight averaging (or SWA)
+parser.add_argument('--wa_interval', default=5, type=int, help='How often to take the average (every k steps). Must divide wa-horizon.')
+parser.add_argument('--wa_horizon', default=500, type=int, help='How frequently we save uniform model averages. Should divide '
++ 'latest-ckpt-interval, otherwise some points may not be saved ' + 'correctly.')
+parser.add_argument('--wa_dtype', default='float32', type=str, choices=['float32', 'float64'])
+parser.add_argument('--wa_use_temp_dir', action='store_true')
+parser.add_argument('--wa_sweep_horizon', action='store_true')
+parser.add_argument('--max_num_wa_sweeps', default=5, type=int)
+parser.add_argument('--exponential_weight_average', action='store_true') # EMA of weights
+parser.add_argument('--ewa_interval', default=10, type=int, help='How often to take the EWA average (every k steps).')
+parser.add_argument('--ewa_decay', default=0.95, type=float, help='EWA decay parameter (between 0.9 and 1).')
+parser.add_argument('--ewa_after_warmup', action='store_true', help='Start EWA after warmup steps.')
 # Dataset params
-parser.add_argument('--dataset', default='slimpajama', choices=['slimpajama', 'wikitext', 'shakespeare-char', 'arxiv', 'arxiv2000', 'arxiv+wiki', 'openwebtext2', 'redpajama', 'redpajamav2', 'slimpajama_chunk1', 'fineweb', 'finewebedu', 'c4'])
+parser.add_argument('--dataset', default='slimpajama', choices=['slimpajama', 'wikitext', 'shakespeare-char', 'arxiv', 'arxiv2000', 'arxiv+wiki', 'openwebtext2', 'redpajama', 'redpajamav2', 'fineweb', 'finewebedu', 'c4', 'arc_easy', 'arc_challenge', 'hellaswag', 'logiqa', 'piqa', 'sciq', 'humaneval', 'gsm8k', 'kodcode', 'mathqa', 'medqa'])
 parser.add_argument('--tokenizer', default='gpt2', type=str, choices=['gpt2', 'mistral'])
 parser.add_argument('--vocab_size', default=50304, type=int)
 parser.add_argument('--data_in_ram', action='store_true') # force the data to RAM, you most likely do not need this  
 # Model params
-parser.add_argument('--model', default='base', choices=['base', 'llama', 'test'])
+parser.add_argument('--model', default='base', choices=['base', 'llama', 'mup_gpt', 'mup_llama',])
 parser.add_argument('--parallel_block', action='store_true')
 parser.add_argument('--use_pretrained', default='none', type=str) # 'none', 'gpt2' or a path to the pretraind model
 parser.add_argument('--from_dense', action='store_true')
@@ -138,7 +156,8 @@ parser.add_argument('--n_embd', default=768, type=int) # hidden size ...
 parser.add_argument('--sequence_length', default=512, type=int)
 parser.add_argument('--dtype', default='bfloat16', type=str, choices=['float32', 'float16', 'bfloat16'],)
 parser.add_argument('--bias', default=False, type=bool)
-parser.add_argument('--compile', action='store_true') # if true then model is compiled 
+parser.add_argument('--compile', action='store_true') # if true then model is compiled
+ parser.add_argument('--untied_embeds', action='store_true') # disables weight tying between lm_head.weight and wte.weight
 parser.add_argument('--rmsnorm_eps', default=1e-5, type=float) # used by the llama model
 parser.add_argument('--multiple_of', default=256, type=int) # used by the llama model make SwiGLU hidden layer size multiple of large power of 2
 parser.add_argument('--moe', action='store_true')
@@ -153,6 +172,9 @@ parser.add_argument('--moe_aux_loss_factor', default=0.1, type=float)
 parser.add_argument('--moe_z_loss_factor', default=0.01, type=float)
 parser.add_argument('--moe_softmax_order', type=str, default='topk_softmax', choices=['softmax_topk', 'topk_softmax'],)
 parser.add_argument('--plot_router_logits', action='store_true')
+parser.add_argument('--scale_emb', default=10, type=int) # mup arguments --- the base model width that mup has been configured on
+parser.add_argument('--scale_base_model', default=256, type=int)
+parser.add_argument('--scale_depth', default=1.4, type=float)
 # Checkpointing
 parser.add_argument('--results_base_folder', default='./exps', type=str)
 parser.add_argument('--permanent_ckpt_interval', default=0, type=int)
@@ -192,21 +214,25 @@ The structure of the project is the following:
 
 ```sh
 src/
-    main.py         # pick the right data, model, and training function
+    main.py         # pick the right data, model, optimizer, and training function
     config/
         __init__.py # contains CONFIG_FORMAT_TO_MODULE_MAP mapping the name given to the --config_format flag with a python conf file
         base.py     # config for the base model
     data/
         utils.py    # contains the get_dataset function
-        wikitext.py # load/process wikitext
-        arxiv.py    # load/process arxiv
+        fineweb.py # load/process fineweb
+        fineweb_edu.py    # load/process fineweb edu
         shakespeare.py # load/process the Shakespeare dataset
+        benchmarks.py # load/process benchs, e.g., hellaswag, gsm8k, arc_challenge
+        c4.py # load/process the c4 dataset
         slimpajama.py
         ...
     models/
         utils.py    # contains the get_model function
         base.py     # contains the standard transformer base architecture
         llama.py    # llama architecture
+        mup.py # implementation of muP
+        mup_llama.py # muP-styled llama architecture
     optim/
         utils.py    # contains eval and get_batch functions
         base.py     # training function for the base and llama models
