@@ -40,7 +40,7 @@ The above command trains a 123.59M parameters model with the Llama-style archite
 ## Reproducibility
 
 We [present](https://github.com/epfml/llm-optimizer-benchmark/tree/dev/scripts) scripts for reproducing our benchmarking results for 124M, 210M, 720M dense Llama-based models, and 520M MoEs.
-Set the [wandb logging](README.md#using-wandb) and run those scripts to obtain the results as below.
+Set the [wandb logging](#using-wandb) and run those scripts to obtain the results as below.
 
 <p align="center">
   <img src="assets/720m_losses_1.png" alt="SF, Signum, Lion, Sophia" width="30%" style="display:inline-block; margin: 5px;"/>
