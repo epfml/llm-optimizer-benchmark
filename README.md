@@ -17,6 +17,7 @@ Date: September 2025
 ## News 🔔
 
 * **11/2025:** Added muP (for both GPT and Llama configurations), uniform and exponential weight averaging, special initialization of the MoE router. More informative logging during training, including RMS and angular updates of different layers. Added an option to train models with untied embeds. Added benchmarks for evaluating downstream performance, e.g., hellaswag, arc_challenge, gsm8k...
+* **10/2025:** [@Andron00e](https://github.com/Andron00e) will present this work at [EurIPS 2025](https://eurips.cc/) and at the workshop on [Benchmarking in AI](https://sites.google.com/view/benchmarking-and-evaluating-ai) in Copenhagen.
 
 ## Quickstart 
 
