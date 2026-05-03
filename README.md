@@ -1,24 +1,7 @@
 # Codebase: "Benchmarking Optimizers for Large Language Model Pretraining"
-[![arXiv](https://img.shields.io/badge/arXiv-2401.06766-b31b1b.svg)](https://arxiv.org/abs/2509.01440)
-[![BibTeX](https://img.shields.io/badge/BibTeX-Citation-green)](#contact--reference)
-
-The code is largely based on our framework [llm-baselines](https://github.com/epfml/llm-baselines) to do research on training LLMs as an extension of [nanoGPT](https://github.com/karpathy/nanogpt).
-See the updates regarding our codebase and repo [here](#news-).
-
-This code comes jointly with reference:
-
-> Andrei Semenov, Matteo Pagliardini, Martin Jaggi.
-
-Date: September 2025
 
 **Abstract:**
 > The recent development of Large Language Models (LLMs) has been accompanied by an effervescence of novel ideas and methods to better optimize the loss of deep learning models. Claims from those methods are myriad: from faster convergence to removing reliance on certain hyperparameters. However, the diverse experimental protocols used to validate these claims make direct comparisons between methods challenging. This study presents a comprehensive evaluation of recent optimization techniques across standardized LLM pretraining scenarios, systematically varying model size, batch size, and training duration. Through careful tuning of each method, we provide guidance to practitioners on which optimizer is best suited for each scenario. For researchers, our work highlights promising directions for future optimization research. Finally, by releasing our code and making all experiments fully reproducible, we hope our efforts can help the development and rigorous benchmarking of future methods.
-
-## News 🔔
-
-* **12/2025:** The EurIPS 2025 poster is available [here](https://andron00e.github.io/uploads/llm-optimizer-benchmark-eurips25.pdf).
-* **11/2025:** Added muP (for both GPT and Llama configurations), uniform and exponential weight averaging, special initialization of the MoE router. More informative logging during training, including RMS and angular updates of different layers. Added an option to train models with untied embeds. Added benchmarks for evaluating downstream performance, e.g., hellaswag, arc_challenge, gsm8k...
-* **10/2025:** [@Andron00e](https://github.com/Andron00e) will present this work at [EurIPS 2025](https://eurips.cc/) and at the workshop on [Benchmarking in AI](https://sites.google.com/view/benchmarking-and-evaluating-ai) in Copenhagen.
 
 ## Quickstart 
 
@@ -40,7 +23,7 @@ The above command trains a 123.59M parameters model with the Llama-style archite
 
 ## Reproducibility
 
-We [present](https://github.com/epfml/llm-optimizer-benchmark/tree/dev/scripts) scripts for reproducing our benchmarking results for 124M, 210M, 720M dense Llama-based models, and 520M MoEs.
+We present scripts for reproducing our benchmarking results for 124M, 210M, 720M dense Llama-based models, and 520M MoEs.
 Set the [wandb logging](#using-wandb) and run those scripts to obtain the results as below.
 
 <p align="center">
@@ -265,18 +248,3 @@ python ./src/main.py --n_layer=2 --n_head=4 --n_embd=128 --sequence_length=256 -
 ```
 
 **We believe the details provided are clear enough to reproduce the main findings of our paper.**
-
-
-## Contact & Reference
-
-Please do not hesitate to reach out to us if you have questions. And feel free to open an [issue](https://github.com/epfml/llm-optimizer-benchmark/issues).
-
-```bib
-@article{semenov2025benchmarking,
-  title={Benchmarking {O}ptimizers for {L}arge {L}anguage {M}odel {P}retraining},
-  author={Semenov, Andrei and Pagliardini, Matteo and Jaggi, Martin},
-  journal={arXiv preprint arXiv:2509.01440},
-  url={https://arxiv.org/abs/2509.01440},
-  year={2025}
-}
-```
