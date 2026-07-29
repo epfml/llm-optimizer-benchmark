@@ -1,0 +1,129 @@
+Starting Experiment: sub1_main_token-bin_muon-pytorch_seed0_lrscale3_tokens268435456
+Experiment Directory: /root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_muon-pytorch_seed0_lrscale3_tokens268435456
+Config:
+{'config_format': 'base', 'run_prefix': None, 'experiment_name': 'sub1_main_token-bin_muon-pytorch_seed0_lrscale3_tokens268435456', 'seed': 0, 'data_seed': 1337, 'eval_interval': 0, 'full_eval_at': [], 'eval_batches': 64, 'device': 'cuda:0', 'distributed_backend': None, 'log_interval': 50, 'results_base_folder': '/root/autodl-tmp/llm-optimizer-results/formal', 'permanent_ckpt_interval': 0, 'latest_ckpt_interval': 4096, 'resume_from': None, 'resume_from_swa': None, 'auto_resume': True, 'wandb': False, 'wandb_project': 'my-project', 'wandb_run_prefix': 'none', 'eval_seq_prefix': 'none', 'log_dynamics': False, 'dynamics_logger_cfg': './src/logger/rotational_logger.yaml', 'wandb_entity': None, 'log_parameter_norms': False, 'norm_order': 2, 'scheduler': 'warmup_constant', 'final_div_factor': 1, 'cos_inf_steps': 0, 'iterations': 15000, 'warmup_steps': 16, 'lr': 0.06, 'train_token_budget': 268435456, 'eval_at_tokens': [16777216, 33554432, 67108864, 134217728, 268435456], 'strict_sub_one_pass': True, 'fixed_data_boundaries': True, 'lazy_data_permutation': True, 'limit_final_eval': True, 'wsd_final_lr_scale': 0.0, 'wsd_fract_decay': 0.1, 'decay_type': 'linear', 'opt': 'muon-pytorch', 'batch_size': 16, 'acc_steps': 8, 'weight_decay': 0.1, 'beta1': 0.9, 'beta2': 0.95, 'grad_clip': 0.5, 'momentum': 0.95, 'shampoo_beta': -1.0, 'precondition_frequency': 10, 'max_precond_dim': 10000, 'merge_dims': False, 'precondition_1d': False, 'normalize_grads': False, 'soap_data_format': 'channels_first', 'correct_bias': True, 'nesterov': True, 'muon_ns_steps': 5, 'muon_lr_factor': 1.0, 'muon_adamw_lr': 0.003, 'adema_beta3': 0.9, 'adema_alpha': 2.0, 'adema_beta3_warmup': None, 'adema_alpha_warmup': None, 'schedulefree_r': 0.0, 'weight_lr_power': 2.0, 'dampening': 0.0, 'prodigy_beta3': None, 'prodigy_decouple': True, 'prodigy_use_bias_correction': False, 'prodigy_safeguard_warmup': False, 'prodigy_fsdp_in_use': False, 'sophia_rho': 0.04, 'sophia_bs': 480, 'clipping_type': 'no', 'clip_eta': 1.0, 'mars_type': 'mars-adamw', 'mars_vr_gamma': 0.025, 'mars_is_approx': True, 'mars_lr': 0.003, 'mars_beta1': 0.95, 'mars_beta2': 0.99, 'adafactor_decay_rate': -0.8, 'lamb_use_bias_correction': False, 'adopt_decouple': True, 'adopt_eps': 1e-06, 'scion_lmh_scale': 10.0, 'scion_emb_scale': 1.0, 'scion_tr_scale': 3.0, 'weight_average': False, 'wa_interval': 5, 'wa_horizon': 500, 'wa_dtype': 'float32', 'wa_use_temp_dir': False, 'wa_sweep_horizon': False, 'max_num_wa_sweeps': 5, 'exponential_weight_average': False, 'ewa_interval': 10, 'ewa_decay': 0.95, 'ewa_after_warmup': False, 'datasets_dir': '/root/autodl-tmp/llm-optimizer-benchmark/src/data/datasets', 'dataset': 'token-bin', 'tokenizer': 'gpt2', 'vocab_size': 50304, 'data_in_ram': False, 'train_data_path': '/root/autodl-tmp/llm-optimizer-data/fineweb-512m/train.bin', 'val_data_path': '/root/autodl-tmp/llm-optimizer-data/fineweb-512m/val.bin', 'model': 'llama', 'parallel_block': False, 'use_pretrained': 'none', 'from_dense': False, 'init_std': 0.02, 'dropout': 0.0, 'n_head': 6, 'n_layer': 8, 'sequence_length': 512, 'n_embd': 384, 'multiple_of': 256, 'n_kv_head': None, 'rmsnorm_eps': 1e-05, 'dtype': 'bfloat16', 'bias': False, 'compile': False, 'untied_embeds': False, 'mlp_dim_exp_factor': 1.0, 'moe': False, 'moe_routing': 'standard_gating', 'moe_num_experts': 8, 'capacity_factor': 2.0, 'moe_num_shared_experts': 0, 'moe_router_loss': 'load_balancing_z_loss', 'moe_num_experts_per_tok': 2, 'moe_entropy_loss_factor': 0.01, 'moe_aux_loss_factor': 0.1, 'moe_z_loss_factor': 0.01, 'moe_softmax_order': 'topk_softmax', 'plot_router_logits': False, 'scale_emb': 10, 'scale_base_model': 256, 'scale_depth': 1.4, 'world_size': 1}
+
+Loading dataset: 'token-bin'
+Num training tokens: 536870912
+Num validation tokens: 8388608
+Token budget: 268,435,456 tokens, 4,096 optimizer steps, 0.500008 effective passes
+Evaluation token boundaries: 16,777,216, 33,554,432, 67,108,864, 134,217,728, 268,435,456
+
+Model:
+Llama(
+  (transformer): ModuleDict(
+    (wte): Embedding(50304, 384)
+    (drop): Dropout(p=0.0, inplace=False)
+    (h): ModuleList(
+      (0-7): 8 x LlamaBlock(
+        (ln_1): RMSNorm()
+        (attn): LlamaAttention(
+          (c_attn): Linear(in_features=384, out_features=1152, bias=False)
+          (c_proj): Linear(in_features=384, out_features=384, bias=False)
+          (attn_dropout): Dropout(p=0.0, inplace=False)
+          (resid_dropout): Dropout(p=0.0, inplace=False)
+        )
+        (ln_2): RMSNorm()
+        (mlp): LlamaMLP(
+          (w1): Linear(in_features=384, out_features=1024, bias=False)
+          (w2): Linear(in_features=384, out_features=1024, bias=False)
+          (c_proj): Linear(in_features=1024, out_features=384, bias=False)
+        )
+      )
+    )
+    (ln_f): RMSNorm()
+  )
+  (lm_head): Linear(in_features=384, out_features=50304, bias=False)
+)
+number of parameters: 33.48M
+number of optimized parameters: 33.48M
+number of non-embedding parameters: -5.15M
+
+Optimizer:
+<optim.composite.CompositeOptimizer object at 0x7ff80bcdef90>
+Train: Iter=50 (0.006104 effective passes) train_loss=6.777 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=100 (0.012207 effective passes) train_loss=5.844 iter_dt=2.83e-01s lr=6.00e-02
+Train: Iter=150 (0.018311 effective passes) train_loss=5.551 iter_dt=2.85e-01s lr=6.00e-02
+Train: Iter=200 (0.024414 effective passes) train_loss=5.476 iter_dt=2.82e-01s lr=6.00e-02
+Train: Iter=250 (0.030518 effective passes) train_loss=5.435 iter_dt=2.82e-01s lr=6.00e-02
+>Eval: Iter=256 (0.031250 effective passes) val_loss=5.278 val_pp=195.998 val_acc=0.204409
+Train: Iter=300 (0.036622 effective passes) train_loss=5.093 iter_dt=2.82e-01s lr=6.00e-02
+Train: Iter=350 (0.042725 effective passes) train_loss=5.293 iter_dt=2.82e-01s lr=6.00e-02
+Train: Iter=400 (0.048829 effective passes) train_loss=4.968 iter_dt=2.85e-01s lr=6.00e-02
+Train: Iter=450 (0.054932 effective passes) train_loss=4.828 iter_dt=2.81e-01s lr=6.00e-02
+Train: Iter=500 (0.061036 effective passes) train_loss=4.875 iter_dt=2.88e-01s lr=6.00e-02
+>Eval: Iter=512 (0.062501 effective passes) val_loss=4.949 val_pp=141.029 val_acc=0.237040
+Train: Iter=550 (0.067140 effective passes) train_loss=4.966 iter_dt=2.86e-01s lr=6.00e-02
+Train: Iter=600 (0.073243 effective passes) train_loss=4.692 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=650 (0.079347 effective passes) train_loss=5.086 iter_dt=2.84e-01s lr=6.00e-02
+Train: Iter=700 (0.085451 effective passes) train_loss=4.971 iter_dt=2.82e-01s lr=6.00e-02
+Train: Iter=750 (0.091554 effective passes) train_loss=5.011 iter_dt=2.82e-01s lr=6.00e-02
+Train: Iter=800 (0.097658 effective passes) train_loss=4.838 iter_dt=2.82e-01s lr=6.00e-02
+Train: Iter=850 (0.103761 effective passes) train_loss=4.748 iter_dt=2.82e-01s lr=6.00e-02
+Train: Iter=900 (0.109865 effective passes) train_loss=4.758 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=950 (0.115969 effective passes) train_loss=4.799 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=1000 (0.122072 effective passes) train_loss=4.851 iter_dt=2.79e-01s lr=6.00e-02
+>Eval: Iter=1024 (0.125002 effective passes) val_loss=4.762 val_pp=116.974 val_acc=0.250929
+Train: Iter=1050 (0.128176 effective passes) train_loss=4.860 iter_dt=2.82e-01s lr=6.00e-02
+Train: Iter=1100 (0.134279 effective passes) train_loss=4.709 iter_dt=2.77e-01s lr=6.00e-02
+Train: Iter=1150 (0.140383 effective passes) train_loss=4.698 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=1200 (0.146487 effective passes) train_loss=4.659 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=1250 (0.152590 effective passes) train_loss=4.679 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=1300 (0.158694 effective passes) train_loss=4.745 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=1350 (0.164797 effective passes) train_loss=4.736 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=1400 (0.170901 effective passes) train_loss=4.738 iter_dt=2.78e-01s lr=6.00e-02
+Train: Iter=1450 (0.177005 effective passes) train_loss=4.616 iter_dt=2.93e-01s lr=6.00e-02
+Train: Iter=1500 (0.183108 effective passes) train_loss=4.733 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=1550 (0.189212 effective passes) train_loss=4.621 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=1600 (0.195315 effective passes) train_loss=4.924 iter_dt=2.82e-01s lr=6.00e-02
+Train: Iter=1650 (0.201419 effective passes) train_loss=4.464 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=1700 (0.207523 effective passes) train_loss=4.849 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=1750 (0.213626 effective passes) train_loss=4.500 iter_dt=2.81e-01s lr=6.00e-02
+Train: Iter=1800 (0.219730 effective passes) train_loss=4.541 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=1850 (0.225834 effective passes) train_loss=4.826 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=1900 (0.231937 effective passes) train_loss=4.456 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=1950 (0.238041 effective passes) train_loss=4.470 iter_dt=2.81e-01s lr=6.00e-02
+Train: Iter=2000 (0.244144 effective passes) train_loss=4.599 iter_dt=2.79e-01s lr=6.00e-02
+>Eval: Iter=2048 (0.250004 effective passes) val_loss=4.571 val_pp=96.684 val_acc=0.266104
+Train: Iter=2050 (0.250248 effective passes) train_loss=4.601 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=2100 (0.256352 effective passes) train_loss=4.601 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=2150 (0.262455 effective passes) train_loss=4.575 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=2200 (0.268559 effective passes) train_loss=4.538 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=2250 (0.274662 effective passes) train_loss=4.580 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=2300 (0.280766 effective passes) train_loss=4.313 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=2350 (0.286870 effective passes) train_loss=4.486 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=2400 (0.292973 effective passes) train_loss=4.528 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=2450 (0.299077 effective passes) train_loss=4.493 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=2500 (0.305180 effective passes) train_loss=4.764 iter_dt=2.78e-01s lr=6.00e-02
+Train: Iter=2550 (0.311284 effective passes) train_loss=4.560 iter_dt=2.78e-01s lr=6.00e-02
+Train: Iter=2600 (0.317388 effective passes) train_loss=4.319 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=2650 (0.323491 effective passes) train_loss=4.730 iter_dt=2.78e-01s lr=6.00e-02
+Train: Iter=2700 (0.329595 effective passes) train_loss=4.609 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=2750 (0.335698 effective passes) train_loss=4.494 iter_dt=2.81e-01s lr=6.00e-02
+Train: Iter=2800 (0.341802 effective passes) train_loss=4.375 iter_dt=2.81e-01s lr=6.00e-02
+Train: Iter=2850 (0.347906 effective passes) train_loss=4.680 iter_dt=2.81e-01s lr=6.00e-02
+Train: Iter=2900 (0.354009 effective passes) train_loss=4.600 iter_dt=2.82e-01s lr=6.00e-02
+Train: Iter=2950 (0.360113 effective passes) train_loss=4.538 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=3000 (0.366217 effective passes) train_loss=4.373 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=3050 (0.372320 effective passes) train_loss=4.540 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=3100 (0.378424 effective passes) train_loss=4.161 iter_dt=2.81e-01s lr=6.00e-02
+Train: Iter=3150 (0.384527 effective passes) train_loss=4.434 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=3200 (0.390631 effective passes) train_loss=4.516 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=3250 (0.396735 effective passes) train_loss=4.582 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=3300 (0.402838 effective passes) train_loss=4.490 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=3350 (0.408942 effective passes) train_loss=4.673 iter_dt=2.81e-01s lr=6.00e-02
+Train: Iter=3400 (0.415045 effective passes) train_loss=4.392 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=3450 (0.421149 effective passes) train_loss=4.339 iter_dt=2.86e-01s lr=6.00e-02
+Train: Iter=3500 (0.427253 effective passes) train_loss=4.443 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=3550 (0.433356 effective passes) train_loss=4.542 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=3600 (0.439460 effective passes) train_loss=4.599 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=3650 (0.445563 effective passes) train_loss=4.563 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=3700 (0.451667 effective passes) train_loss=4.402 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=3750 (0.457771 effective passes) train_loss=4.419 iter_dt=2.77e-01s lr=6.00e-02
+Train: Iter=3800 (0.463874 effective passes) train_loss=4.546 iter_dt=2.80e-01s lr=6.00e-02
+Train: Iter=3850 (0.469978 effective passes) train_loss=4.348 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=3900 (0.476081 effective passes) train_loss=4.428 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=3950 (0.482185 effective passes) train_loss=4.492 iter_dt=2.78e-01s lr=6.00e-02
+Train: Iter=4000 (0.488289 effective passes) train_loss=4.593 iter_dt=2.79e-01s lr=6.00e-02
+Train: Iter=4050 (0.494392 effective passes) train_loss=4.447 iter_dt=2.79e-01s lr=6.00e-02
+>Eval: Iter=4096 (0.500008 effective passes) val_loss=4.457 val_pp=86.244 val_acc=0.274332

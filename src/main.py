@@ -14,17 +14,27 @@ import wandb
 import config
 import distributed
 from data.utils import DataReader, get_dataset
+from experiment_budget import make_token_budget_plan
 from models.utils import get_model
 from optim.adafactor import Adafactor
 from optim.ademamix import AdEMAMix
 from optim.adopt import ADOPT
 from optim.base import train
+from optim.composite import (
+    CompositeOptimizer,
+    CompositeScheduler,
+    split_muon_param_groups,
+)
 from optim.lamb import Lamb
 from optim.lion import Lion
 from optim.mars import MARS
 from optim.muon import CombinedScheduler, DistributedMuon, Muon
 from optim.prodigy import Prodigy
-from optim.schedule import cos_inf_schedule, wsd_schedule
+from optim.schedule import (
+    cos_inf_schedule,
+    warmup_constant_schedule,
+    wsd_schedule,
+)
 from optim.schedulefree import AdamWScheduleFree, SGDScheduleFree
 from optim.scion import Scion, ScionLight, scion_partitions
 from optim.sign import Signum
@@ -85,6 +95,7 @@ def main(args, parser):
 
     print(f"Loading dataset: '{args.dataset}'")
     datareaders = get_data_readers(args)
+    configure_token_budget(args, datareaders["train"])
 
     model = get_model(args).to(
         args.device
@@ -327,9 +338,20 @@ def main(args, parser):
             momentum=args.momentum,
         )
     elif args.opt == "muon-pytorch":
-        opt = torch.optim.Muon(
-            group_specs,
+        if not hasattr(torch.optim, "Muon"):
+            raise RuntimeError("muon-pytorch requires torch.optim.Muon (PyTorch >= 2.9).")
+        raw_model = distributed_backend.get_raw_model(model)
+        fallback_param_ids = {
+            id(raw_model.transformer.wte.weight),
+            id(raw_model.lm_head.weight),
+        }
+        muon_groups, adamw_groups = split_muon_param_groups(
+            group_specs, fallback_param_ids
+        )
+        muon_opt = torch.optim.Muon(
+            muon_groups,
             lr=args.lr,
+            weight_decay=args.weight_decay,
             momentum=args.momentum,
             nesterov=args.nesterov,
             ns_steps=args.muon_ns_steps,
@@ -341,6 +363,13 @@ def main(args, parser):
             eps=1e-7,  # muon pytorch uses smaller eps
             adjust_lr_fn=None,  # to make the orthogonalized update have a consistent RMS across rectangular matrices
         )
+        adamw_opt = torch.optim.AdamW(
+            adamw_groups,
+            lr=args.muon_adamw_lr,
+            betas=(args.beta1, args.beta2),
+            weight_decay=args.weight_decay,
+        )
+        opt = CompositeOptimizer([muon_opt, adamw_opt])
     else:
         opt = torch.optim.SGD(
             group_specs,
@@ -350,6 +379,14 @@ def main(args, parser):
             nesterov=args.nesterov,
         )
     print(f"\nOptimizer:\n{opt}")
+
+    if isinstance(opt, CompositeOptimizer) and args.scheduler not in [
+        "warmup_constant",
+        "none",
+    ]:
+        raise ValueError(
+            "muon-pytorch currently supports scheduler='warmup_constant' or 'none'."
+        )
 
     if args.scheduler != "none":
         assert (
@@ -402,6 +439,22 @@ def main(args, parser):
                 if args.opt != "muon"
                 else CombinedScheduler(opt, args)
             )
+        elif args.scheduler == "warmup_constant":
+            lambda_schedule = warmup_constant_schedule(
+                n_warmup=args.warmup_steps,
+                init_div_factor=1e2,
+            )
+            if isinstance(opt, CompositeOptimizer):
+                scheduler = CompositeScheduler(
+                    [
+                        torch.optim.lr_scheduler.LambdaLR(
+                            child_optimizer, lambda_schedule
+                        )
+                        for child_optimizer in opt.optimizers
+                    ]
+                )
+            else:
+                scheduler = torch.optim.lr_scheduler.LambdaLR(opt, lambda_schedule)
         else:
             raise NotImplementedError(f"Unknown scheduler type: {args.scheduler}.")
     else:
@@ -447,6 +500,8 @@ def get_data_readers(args, verbose=True):
         with_replacement=False,
         auto_shard=True,
         keep_in_ram=args.data_in_ram,
+        fixed_data_boundaries=args.fixed_data_boundaries,
+        lazy_data_permutation=args.lazy_data_permutation,
     )
     val_reader = DataReader(
         data_src=data_srcs["val"],
@@ -456,6 +511,8 @@ def get_data_readers(args, verbose=True):
         with_replacement=False,
         auto_shard=False,  # NOTE Identical Per Rank
         keep_in_ram=args.data_in_ram,
+        fixed_data_boundaries=args.fixed_data_boundaries,
+        lazy_data_permutation=args.lazy_data_permutation,
     )
 
     if verbose:
@@ -466,6 +523,52 @@ def get_data_readers(args, verbose=True):
         "train": train_reader,
         "val": val_reader,
     }
+
+
+def configure_token_budget(args, train_reader):
+    """Derive exact step/evaluation boundaries for token-budget experiments."""
+    args.tokens_per_iteration = (
+        args.world_size * args.batch_size * args.acc_steps * args.sequence_length
+    )
+    args.data_unique_tokens = train_reader.unique_tokens_per_epoch
+    args.eval_at_steps = []
+    args.token_budget_plan = None
+
+    if args.train_token_budget is None:
+        if args.eval_at_tokens is not None:
+            raise ValueError(
+                "--eval_at_tokens requires --train_token_budget so step boundaries "
+                "can be derived unambiguously."
+            )
+        return
+
+    if args.strict_sub_one_pass and args.world_size != 1:
+        raise ValueError(
+            "--strict_sub_one_pass currently supports one GPU only. "
+            "Use the single-device backend."
+        )
+
+    plan = make_token_budget_plan(
+        train_token_budget=args.train_token_budget,
+        tokens_per_iteration=args.tokens_per_iteration,
+        data_unique_tokens=args.data_unique_tokens,
+        eval_at_tokens=args.eval_at_tokens,
+        strict_sub_one_pass=args.strict_sub_one_pass,
+    )
+    args.iterations = plan.iterations
+    args.eval_at_steps = list(plan.eval_at_steps)
+    args.token_budget_plan = plan.to_dict()
+
+    print(
+        "Token budget: "
+        f"{plan.train_token_budget:,} tokens, "
+        f"{plan.iterations:,} optimizer steps, "
+        f"{plan.target_data_exposure:.6f} effective passes"
+    )
+    print(
+        "Evaluation token boundaries: "
+        + ", ".join(f"{value:,}" for value in plan.eval_at_tokens)
+    )
 
 
 def get_exp_name(
@@ -488,7 +591,6 @@ def get_exp_name(
         "results_base_folder",
         "run_prefix",
         "wandb_run_prefix",
-        "seed",
         "device",
         "adema_beta3_warmup",
         "adema_alpha_warmup",
@@ -510,6 +612,15 @@ def get_exp_name(
         "log_dynamics",
         "dynamics_logger_cfg",
         "experiment_name",
+        "eval_at_tokens",
+        "strict_sub_one_pass",
+        "fixed_data_boundaries",
+        "lazy_data_permutation",
+        "limit_final_eval",
+        "tokens_per_iteration",
+        "data_unique_tokens",
+        "eval_at_steps",
+        "token_budget_plan",
     ],
 ):
     # Set the custom exp name if needed

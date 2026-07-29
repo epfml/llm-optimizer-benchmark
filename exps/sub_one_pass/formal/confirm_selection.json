@@ -1,0 +1,116 @@
+{
+  "selection_rule": "AdamW baseline plus the three non-AdamW optimizers with the lowest S2 final validation loss at 268435456 tokens.",
+  "selected_optimizers": [
+    "adamw",
+    "ademamix",
+    "soap",
+    "muon"
+  ],
+  "seeds": [
+    1,
+    2
+  ],
+  "ranking": [
+    {
+      "optimizer": "ademamix",
+      "final_val_loss": 4.01993989944458,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_ademamix_seed0_lrscale1_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "soap",
+      "final_val_loss": 4.038823127746582,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_soap_seed0_lrscale1_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "muon",
+      "final_val_loss": 4.043658256530762,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_muon_seed0_lrscale3_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "d-muon",
+      "final_val_loss": 4.057147979736328,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_d-muon_seed0_lrscale3_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "adamw",
+      "final_val_loss": 4.083443641662598,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_adamw_seed0_lrscale1_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "prodigy",
+      "final_val_loss": 4.091464042663574,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_prodigy_seed0_lrscale0p3_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "mars",
+      "final_val_loss": 4.1218061447143555,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_mars_seed0_lrscale0p3_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "lion",
+      "final_val_loss": 4.166975021362305,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_lion_seed0_lrscale0p3_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "adopt",
+      "final_val_loss": 4.170770168304443,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_adopt_seed0_lrscale0p3_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "sophiag",
+      "final_val_loss": 4.209933280944824,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_sophiag_seed0_lrscale0p3_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "lamb",
+      "final_val_loss": 4.210540771484375,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_lamb_seed0_lrscale27_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "signum",
+      "final_val_loss": 4.239973068237305,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_signum_seed0_lrscale1_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "sf-adamw",
+      "final_val_loss": 4.304592132568359,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_sf-adamw_seed0_lrscale1_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "adafactor",
+      "final_val_loss": 4.321353912353516,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_adafactor_seed0_lrscale0p3_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "muon-pytorch",
+      "final_val_loss": 4.4571852684021,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_muon-pytorch_seed0_lrscale3_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "signsgd",
+      "final_val_loss": 5.291903495788574,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_signsgd_seed0_lrscale0p3_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "scion",
+      "final_val_loss": 6.072164535522461,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_scion_seed0_lrscale0p3_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "scion-light",
+      "final_val_loss": 6.240045070648193,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_scion-light_seed0_lrscale0p3_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "sgd",
+      "final_val_loss": 6.9730939865112305,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_sgd_seed0_lrscale9_tokens268435456/summary.json"
+    },
+    {
+      "optimizer": "sf-sgd",
+      "final_val_loss": 6.992140293121338,
+      "summary_path": "/root/autodl-tmp/llm-optimizer-results/formal/sub1_main_token-bin_sf-sgd_seed0_lrscale729_tokens268435456/summary.json"
+    }
+  ],
+  "created_at_unix": 1785263889.9600036
+}

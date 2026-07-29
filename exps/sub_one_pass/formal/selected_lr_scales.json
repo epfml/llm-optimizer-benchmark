@@ -1,0 +1,22 @@
+{
+  "adafactor": 0.3,
+  "adamw": 1.0,
+  "ademamix": 1.0,
+  "adopt": 0.3,
+  "d-muon": 3.0,
+  "lamb": 27.0,
+  "lion": 0.3,
+  "mars": 0.3,
+  "muon": 3.0,
+  "muon-pytorch": 3.0,
+  "prodigy": 0.3,
+  "scion": 0.3,
+  "scion-light": 0.3,
+  "sf-adamw": 1.0,
+  "sf-sgd": 729.0,
+  "sgd": 9.0,
+  "signsgd": 0.3,
+  "signum": 1.0,
+  "soap": 1.0,
+  "sophiag": 0.3
+}

@@ -58,7 +58,7 @@ def parse_args(base_parser, args, namespace):
     parser.add_argument(
         "--scheduler",
         default="cos",
-        choices=["linear", "cos", "wsd", "none", "cos_inf"],
+        choices=["linear", "cos", "wsd", "none", "cos_inf", "warmup_constant"],
     )
     parser.add_argument(
         "--final_div_factor", default=1, type=float
@@ -68,6 +68,39 @@ def parse_args(base_parser, args, namespace):
     parser.add_argument("--iterations", default=15000, type=int)
     parser.add_argument("--warmup_steps", default=3000, type=int)
     parser.add_argument("--lr", default=1e-3, type=float)
+    parser.add_argument(
+        "--train_token_budget",
+        default=None,
+        type=int,
+        help="Override iterations using an exact number of observed training tokens.",
+    )
+    parser.add_argument(
+        "--eval_at_tokens",
+        nargs="+",
+        default=None,
+        type=int,
+        help="Evaluate at these cumulative training-token boundaries.",
+    )
+    parser.add_argument(
+        "--strict_sub_one_pass",
+        action="store_true",
+        help="Fail if train_token_budget exceeds the unique tokens in one data pass.",
+    )
+    parser.add_argument(
+        "--fixed_data_boundaries",
+        action="store_true",
+        help="Use fixed non-overlapping sequence boundaries in every data pass.",
+    )
+    parser.add_argument(
+        "--lazy_data_permutation",
+        action="store_true",
+        help="Use a constant-memory deterministic permutation for very large corpora.",
+    )
+    parser.add_argument(
+        "--limit_final_eval",
+        action="store_true",
+        help="Use eval_batches rather than the complete validation set at the final step.",
+    )
     # wsd
     parser.add_argument("--wsd_final_lr_scale", default=0.0, type=float)
     parser.add_argument("--wsd_fract_decay", default=0.1, type=float)
@@ -125,6 +158,12 @@ def parse_args(base_parser, args, namespace):
     parser.add_argument("--nesterov", default=False, type=bool)
     parser.add_argument("--muon_ns_steps", default=5, type=int)
     parser.add_argument("--muon_lr_factor", default=1.0, type=float)
+    parser.add_argument(
+        "--muon_adamw_lr",
+        default=1e-3,
+        type=float,
+        help="AdamW fallback LR for non-Muon parameters in muon-pytorch.",
+    )
     parser.add_argument("--adema_beta3", default=0.9, type=float)
     parser.add_argument("--adema_alpha", default=2.0, type=float)
     parser.add_argument("--adema_beta3_warmup", default=None, type=int)
@@ -214,6 +253,7 @@ def parse_args(base_parser, args, namespace):
         default="slimpajama",
         choices=[
             "wikitext",
+            "token-bin",
             "shakespeare-char",
             "arxiv",
             "arxiv2000",
@@ -246,6 +286,8 @@ def parse_args(base_parser, args, namespace):
     parser.add_argument(
         "--data_in_ram", action="store_true"
     )  # force the data to RAM, mostly useless except for openwebtext2
+    parser.add_argument("--train_data_path", default=None, type=str)
+    parser.add_argument("--val_data_path", default=None, type=str)
 
     # Model params
     parser.add_argument(

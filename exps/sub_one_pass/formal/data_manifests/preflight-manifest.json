@@ -1,0 +1,9 @@
+{
+  "purpose": "optimizer-compatibility-preflight-only",
+  "synthetic": true,
+  "seed": 20260728,
+  "vocab_size": 50304,
+  "train_tokens": 4194304,
+  "val_tokens": 524288,
+  "eligible_for_scientific_comparison": false
+}

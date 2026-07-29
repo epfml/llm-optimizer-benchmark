@@ -1,0 +1,17 @@
+{
+  "dataset": "HuggingFaceFW/fineweb",
+  "config": "sample-10BT",
+  "sources": [
+    {
+      "path": "/root/autodl-tmp/llm-optimizer-data/fineweb-source/000_00000.parquet",
+      "size_bytes": 2147292183,
+      "sha256": "6b552ea48424648dc86d00df276f93fdfc55e9ad342ce3e4affc23a3a370792b"
+    }
+  ],
+  "tokenizer": "gpt2",
+  "train_tokens": 536870912,
+  "val_tokens": 8388608,
+  "documents_consumed": 788777,
+  "split_unit": "source_document",
+  "validation_boundary_discarded_tokens": 475
+}

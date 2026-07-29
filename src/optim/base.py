@@ -59,6 +59,10 @@ def train(
         load_worker_state(ckpt_dir)
     else:
         curr_iter = 0
+    initial_iter = curr_iter
+    total_train_time_seconds = 0.0
+    if "cuda" in cfg.device:
+        torch.cuda.reset_peak_memory_stats(torch.device(cfg.device))
 
     if cfg.weight_average:
         # This does generally not support resuming training, but will work if
@@ -101,7 +105,14 @@ def train(
     substep = curr_iter * cfg.acc_steps
     train_reader, val_reader = datareaders["train"], datareaders["val"]
     train_reader.set_step(substep)
-    stats = {"train_loss": [], "val_loss": [], "val_pp": [], "val_acc": []}
+    stats = {
+        "train_loss": [],
+        "val_loss": [],
+        "val_pp": [],
+        "val_acc": [],
+        "eval_history": [],
+        "iteration_time_seconds": [],
+    }
     grad_norms = []
     model.train()
 
@@ -126,11 +137,12 @@ def train(
         tokens = ws * substep * cfg.sequence_length * cfg.batch_size
         epoch = tokens / train_reader.num_tokens
         if (
-            curr_iter % cfg.eval_interval == 0
+            (cfg.eval_interval > 0 and curr_iter % cfg.eval_interval == 0)
             or curr_iter == cfg.iterations
             or (curr_iter in cfg.full_eval_at)
+            or (curr_iter in cfg.eval_at_steps)
         ):
-            eval_and_log(
+            eval_result = eval_and_log(
                 tokens,
                 curr_iter,
                 epoch,
@@ -142,6 +154,11 @@ def train(
                 opt,
                 full_eval=(curr_iter in cfg.full_eval_at),
             )
+            if eval_result is not None:
+                stats["val_loss"].append(eval_result["val_loss"])
+                stats["val_pp"].append(eval_result["val_perplexity"])
+                stats["val_acc"].append(eval_result["val_accuracy"])
+                stats["eval_history"].append(eval_result)
 
             if curr_iter > cfg.wa_interval and cfg.weight_average:
                 eval_wa(
@@ -238,8 +255,12 @@ def train(
             ewa.step(not_compiled_model, distributed_backend.is_master_process())
 
         dt = (time.perf_counter_ns() - t_start) / 1e9
+        total_train_time_seconds += dt
 
         curr_iter += 1
+        tokens = ws * substep * cfg.sequence_length * cfg.batch_size
+        epoch = tokens / train_reader.num_tokens
+        data_exposure = tokens / cfg.data_unique_tokens
 
         if (
             cfg.log_interval
@@ -257,16 +278,19 @@ def train(
                 prodigy_efective_lrs = log_prodigy_lr(opt)
 
             print(
-                f"Train: Iter={curr_iter} ({epoch:0.3f} epochs) "
+                f"Train: Iter={curr_iter} ({data_exposure:0.6f} effective passes) "
                 f"train_loss={train_loss:.3f} iter_dt={dt:.2e}s "
                 f"lr={current_lrs[0]:.2e}"
             )
+            stats["train_loss"].append(train_loss)
+            stats["iteration_time_seconds"].append(dt)
             if cfg.opt == "prodigy":
                 print(f"effective_lr={prodigy_efective_lrs[0]:.2e}")
 
             if cfg.wandb:
                 wandb_logs = {
                     "tokens": tokens,
+                    "data_exposure": data_exposure,
                     "iter": curr_iter,
                     "train/loss": train_loss,
                     "train/perplexity": 2.71828**train_loss,
@@ -291,6 +315,25 @@ def train(
 
             grad_norms = []
 
+    processed_tokens = (
+        (cfg.iterations - initial_iter)
+        * ws
+        * cfg.acc_steps
+        * cfg.sequence_length
+        * cfg.batch_size
+    )
+    stats["train_time_seconds"] = total_train_time_seconds
+    stats["processed_tokens_this_run"] = processed_tokens
+    stats["mean_tokens_per_second"] = (
+        processed_tokens / total_train_time_seconds
+        if total_train_time_seconds > 0
+        else None
+    )
+    stats["peak_memory_bytes"] = (
+        torch.cuda.max_memory_allocated(torch.device(cfg.device))
+        if "cuda" in cfg.device
+        else None
+    )
     return stats
 
 
@@ -314,7 +357,7 @@ def eval_and_log(
     if cfg.opt == "sf-sgd" or cfg.opt == "sf-adamw":
         opt.eval()
 
-    if curr_iter == cfg.iterations or full_eval:
+    if (curr_iter == cfg.iterations and not cfg.limit_final_eval) or full_eval:
         max_num_batches = val_reader.num_batches()
     else:
         max_num_batches = cfg.eval_batches
@@ -334,7 +377,8 @@ def eval_and_log(
     )
 
     print(
-        f">Eval: Iter={curr_iter} ({epoch:0.3f} epochs) "
+        f">Eval: Iter={curr_iter} "
+        f"({tokens / cfg.data_unique_tokens:0.6f} effective passes) "
         f"val_loss={val_loss:.3f} "
         f"val_pp={val_perplexity:.3f} "
         f"val_acc={val_acc:3f}"
@@ -344,6 +388,7 @@ def eval_and_log(
         if curr_iter == cfg.iterations or full_eval:
             logs = {
                 "tokens": tokens,
+                "data_exposure": tokens / cfg.data_unique_tokens,
                 "iter": curr_iter,
                 "final-val/loss": val_loss,
                 "final-val/perplexity": val_perplexity,
@@ -353,6 +398,7 @@ def eval_and_log(
         else:
             logs = {
                 "tokens": tokens,
+                "data_exposure": tokens / cfg.data_unique_tokens,
                 "iter": curr_iter,
                 "val/loss": val_loss,
                 "val/perplexity": val_perplexity,
@@ -378,4 +424,15 @@ def eval_and_log(
             text_table.add_data(curr_iter, val_perplexity, out_str)
             # why a copy? see github.com/wandb/wandb/issues/2981
             wandb.log({f"generated-text-{wandb.run.name}": copy.copy(text_table)})
+    result = {
+        "iter": curr_iter,
+        "tokens": tokens,
+        "data_exposure": tokens / cfg.data_unique_tokens,
+        "val_loss": val_loss,
+        "val_perplexity": val_perplexity,
+        "val_accuracy": val_acc,
+        "full_eval": full_eval,
+        "num_eval_batches": max_num_batches,
+    }
     model.train()
+    return result
