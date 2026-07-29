@@ -3,6 +3,24 @@ import math
 import numpy as np
 
 
+def warmup_constant_schedule(n_warmup, init_div_factor=100):
+    """Linear warmup followed by a horizon-independent constant learning rate."""
+    if n_warmup < 0:
+        raise ValueError(f"n_warmup must be non-negative, got {n_warmup}.")
+    if init_div_factor <= 0:
+        raise ValueError(
+            f"init_div_factor must be positive, got {init_div_factor}."
+        )
+
+    def schedule(step):
+        if n_warmup == 0 or step >= n_warmup:
+            return 1.0
+        progress = step / n_warmup
+        return progress + (1 - progress) / init_div_factor
+
+    return schedule
+
+
 def cos_inf_schedule(n_iterations, n_warmup, div_factor, final_div_factor, n_inf):
     """Cosine annealing with warmup and _constant_ final_lr after cycle ended.
     Args:

@@ -1,0 +1,79 @@
+Starting Experiment: sub1_tune_token-bin_sf-adamw_seed0_lrscale3_tokens16777216
+Experiment Directory: /root/autodl-tmp/llm-optimizer-results/formal/sub1_tune_token-bin_sf-adamw_seed0_lrscale3_tokens16777216
+Config:
+{'config_format': 'base', 'run_prefix': None, 'experiment_name': 'sub1_tune_token-bin_sf-adamw_seed0_lrscale3_tokens16777216', 'seed': 0, 'data_seed': 1337, 'eval_interval': 0, 'full_eval_at': [], 'eval_batches': 64, 'device': 'cuda:0', 'distributed_backend': None, 'log_interval': 50, 'results_base_folder': '/root/autodl-tmp/llm-optimizer-results/formal', 'permanent_ckpt_interval': 0, 'latest_ckpt_interval': 256, 'resume_from': None, 'resume_from_swa': None, 'auto_resume': True, 'wandb': False, 'wandb_project': 'my-project', 'wandb_run_prefix': 'none', 'eval_seq_prefix': 'none', 'log_dynamics': False, 'dynamics_logger_cfg': './src/logger/rotational_logger.yaml', 'wandb_entity': None, 'log_parameter_norms': False, 'norm_order': 2, 'scheduler': 'none', 'final_div_factor': 1, 'cos_inf_steps': 0, 'iterations': 15000, 'warmup_steps': 16, 'lr': 0.003, 'train_token_budget': 16777216, 'eval_at_tokens': [16777216], 'strict_sub_one_pass': True, 'fixed_data_boundaries': True, 'lazy_data_permutation': True, 'limit_final_eval': True, 'wsd_final_lr_scale': 0.0, 'wsd_fract_decay': 0.1, 'decay_type': 'linear', 'opt': 'sf-adamw', 'batch_size': 16, 'acc_steps': 8, 'weight_decay': 0.1, 'beta1': 0.9, 'beta2': 0.9999, 'grad_clip': 0.5, 'momentum': 0.9, 'shampoo_beta': -1.0, 'precondition_frequency': 10, 'max_precond_dim': 10000, 'merge_dims': False, 'precondition_1d': False, 'normalize_grads': False, 'soap_data_format': 'channels_first', 'correct_bias': True, 'nesterov': False, 'muon_ns_steps': 5, 'muon_lr_factor': 1.0, 'muon_adamw_lr': 0.001, 'adema_beta3': 0.9, 'adema_alpha': 2.0, 'adema_beta3_warmup': None, 'adema_alpha_warmup': None, 'schedulefree_r': 0.0, 'weight_lr_power': 2.0, 'dampening': 0.0, 'prodigy_beta3': None, 'prodigy_decouple': True, 'prodigy_use_bias_correction': False, 'prodigy_safeguard_warmup': False, 'prodigy_fsdp_in_use': False, 'sophia_rho': 0.04, 'sophia_bs': 480, 'clipping_type': 'no', 'clip_eta': 1.0, 'mars_type': 'mars-adamw', 'mars_vr_gamma': 0.025, 'mars_is_approx': True, 'mars_lr': 0.003, 'mars_beta1': 0.95, 'mars_beta2': 0.99, 'adafactor_decay_rate': -0.8, 'lamb_use_bias_correction': False, 'adopt_decouple': True, 'adopt_eps': 1e-06, 'scion_lmh_scale': 10.0, 'scion_emb_scale': 1.0, 'scion_tr_scale': 3.0, 'weight_average': False, 'wa_interval': 5, 'wa_horizon': 500, 'wa_dtype': 'float32', 'wa_use_temp_dir': False, 'wa_sweep_horizon': False, 'max_num_wa_sweeps': 5, 'exponential_weight_average': False, 'ewa_interval': 10, 'ewa_decay': 0.95, 'ewa_after_warmup': False, 'datasets_dir': '/root/autodl-tmp/llm-optimizer-benchmark/src/data/datasets', 'dataset': 'token-bin', 'tokenizer': 'gpt2', 'vocab_size': 50304, 'data_in_ram': False, 'train_data_path': '/root/autodl-tmp/llm-optimizer-data/fineweb-512m/train.bin', 'val_data_path': '/root/autodl-tmp/llm-optimizer-data/fineweb-512m/val.bin', 'model': 'llama', 'parallel_block': False, 'use_pretrained': 'none', 'from_dense': False, 'init_std': 0.02, 'dropout': 0.0, 'n_head': 6, 'n_layer': 8, 'sequence_length': 512, 'n_embd': 384, 'multiple_of': 256, 'n_kv_head': None, 'rmsnorm_eps': 1e-05, 'dtype': 'bfloat16', 'bias': False, 'compile': False, 'untied_embeds': False, 'mlp_dim_exp_factor': 1.0, 'moe': False, 'moe_routing': 'standard_gating', 'moe_num_experts': 8, 'capacity_factor': 2.0, 'moe_num_shared_experts': 0, 'moe_router_loss': 'load_balancing_z_loss', 'moe_num_experts_per_tok': 2, 'moe_entropy_loss_factor': 0.01, 'moe_aux_loss_factor': 0.1, 'moe_z_loss_factor': 0.01, 'moe_softmax_order': 'topk_softmax', 'plot_router_logits': False, 'scale_emb': 10, 'scale_base_model': 256, 'scale_depth': 1.4, 'world_size': 1}
+
+Loading dataset: 'token-bin'
+Num training tokens: 536870912
+Num validation tokens: 8388608
+Token budget: 16,777,216 tokens, 256 optimizer steps, 0.031250 effective passes
+Evaluation token boundaries: 16,777,216
+
+Model:
+Llama(
+  (transformer): ModuleDict(
+    (wte): Embedding(50304, 384)
+    (drop): Dropout(p=0.0, inplace=False)
+    (h): ModuleList(
+      (0-7): 8 x LlamaBlock(
+        (ln_1): RMSNorm()
+        (attn): LlamaAttention(
+          (c_attn): Linear(in_features=384, out_features=1152, bias=False)
+          (c_proj): Linear(in_features=384, out_features=384, bias=False)
+          (attn_dropout): Dropout(p=0.0, inplace=False)
+          (resid_dropout): Dropout(p=0.0, inplace=False)
+        )
+        (ln_2): RMSNorm()
+        (mlp): LlamaMLP(
+          (w1): Linear(in_features=384, out_features=1024, bias=False)
+          (w2): Linear(in_features=384, out_features=1024, bias=False)
+          (c_proj): Linear(in_features=1024, out_features=384, bias=False)
+        )
+      )
+    )
+    (ln_f): RMSNorm()
+  )
+  (lm_head): Linear(in_features=384, out_features=50304, bias=False)
+)
+number of parameters: 33.48M
+number of optimized parameters: 33.48M
+number of non-embedding parameters: -5.15M
+
+Optimizer:
+AdamWScheduleFree (
+Parameter Group 0
+    betas: (0.9, 0.9999)
+    eps: 1e-08
+    foreach: True
+    k: 0
+    lr: 0.003
+    lr_max: -1.0
+    r: 0.0
+    scheduled_lr: 0.0
+    train_mode: False
+    warmup_steps: 16
+    weight_decay: 0.1
+    weight_lr_power: 2.0
+    weight_sum: 0.0
+
+Parameter Group 1
+    betas: (0.9, 0.9999)
+    eps: 1e-08
+    foreach: True
+    k: 0
+    lr: 0.003
+    lr_max: -1.0
+    r: 0.0
+    scheduled_lr: 0.0
+    train_mode: False
+    warmup_steps: 16
+    weight_decay: 0.0
+    weight_lr_power: 2.0
+    weight_sum: 0.0
+)
+Train: Iter=50 (0.006104 effective passes) train_loss=7.357 iter_dt=2.71e-01s lr=3.00e-03
+Train: Iter=100 (0.012207 effective passes) train_loss=6.801 iter_dt=2.79e-01s lr=3.00e-03
+Train: Iter=150 (0.018311 effective passes) train_loss=6.580 iter_dt=2.72e-01s lr=3.00e-03
+Train: Iter=200 (0.024414 effective passes) train_loss=6.577 iter_dt=2.72e-01s lr=3.00e-03
+Train: Iter=250 (0.030518 effective passes) train_loss=6.477 iter_dt=2.72e-01s lr=3.00e-03
+>Eval: Iter=256 (0.031250 effective passes) val_loss=6.418 val_pp=612.911 val_acc=0.132021

@@ -1,0 +1,23 @@
+{
+  "stage": "completed",
+  "updated_at_unix": 1785273368.298487,
+  "s3_completed": true,
+  "selected_optimizers": [
+    "adamw",
+    "ademamix",
+    "soap",
+    "muon"
+  ],
+  "seeds": [
+    1,
+    2
+  ],
+  "main_manifest_counts": {
+    "completed": 20
+  },
+  "confirm_manifest_counts": {
+    "completed": 8
+  },
+  "selection_file": "/root/autodl-tmp/llm-optimizer-results/formal/confirm_selection.json",
+  "summary_csv": "/root/autodl-tmp/llm-optimizer-results/formal/sub_one_pass_results.csv"
+}
